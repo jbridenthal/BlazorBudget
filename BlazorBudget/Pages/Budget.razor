@@ -1,0 +1,191 @@
+﻿@page "/budget"
+@using BlazorBudget.Models
+@using BlazorBudget.Pages.Components
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject IDialogService DialogService
+@inject ProtectedLocalStorage ProtectedLocalStore
+
+<MudContainer Class="py-2 px-2">
+    <MudGrid Class="pa-2">
+        <MudItem Class="d-flex py-2 px-1" xs="12" sm="6">
+            <h3>Budget</h3>
+        </MudItem>
+        <MudItem Class="d-flex flex-row-reverse py-2 px-1" xs="12" sm="6">
+            <MudButton Variant="Variant.Filled" EndIcon="@Icons.Filled.Add" Color="Color.Primary" @onclick=AddBudget>Add New Budget</MudButton>
+        </MudItem>
+    </MudGrid>
+    @foreach (var budget in budgets)
+    {
+        <div class="py-2">
+            <BudgetCard Budget=@budget OnDeleteClick="@DeleteBudget"
+                    OnEditClick="@EditBudget"
+                    OnEditBudgetItemClick=@EditBudgetItem
+                    OnDeleteBudgetItemClick=@DeleteBudgetItem
+                    OnAddBudgetItemClick=@AddBudgetItem></BudgetCard>
+        </div>
+    }
+
+</MudContainer>
+
+@code {
+    private List<BudgetModel> budgets = new List<BudgetModel>();
+
+    private string localStorageID = "budget.AllBudgets";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var result = await ProtectedLocalStore.GetAsync<List<BudgetModel>>(localStorageID);
+            budgets = result.Success && result.Value != null && result.Value.Any() ? result.Value : new List<BudgetModel>()
+            {
+                new BudgetModel()
+                {
+                    Id = Guid.NewGuid(),
+                    BudgetName = "Sample Budget",
+                    BudgetAmount = 500,
+                    BudgetItems = new List<BudgetItemModel>()
+                }
+            };
+            StateHasChanged();
+        }
+    }
+
+    async Task AddBudget()
+    {
+        var parameters = new DialogParameters();
+        DialogOptions closeOnEscapeKey = new DialogOptions() { CloseOnEscapeKey = true };
+
+        var result = await DialogService.Show<BudgetAddEdit>("Add Budget", parameters, closeOnEscapeKey).Result;
+        if (result.Data != null && result.Data.GetType() == typeof(BudgetModel))
+        {
+
+            var newBudget = (BudgetModel)result.Data;
+            //TODO: Change if hooking up to a database to save new budget record to database. Insert function would return ID.
+            newBudget.Id = Guid.NewGuid();
+            newBudget.BudgetItems = new List<BudgetItemModel>();
+
+            budgets.Add(newBudget);
+            await ProtectedLocalStore.SetAsync(localStorageID, budgets);
+        }
+    }
+
+    async Task EditBudget(BudgetModel budget)
+    {
+        var parameters = new DialogParameters();
+        parameters.Add("Budget", budget);
+        DialogOptions closeOnEscapeKey = new DialogOptions() { CloseOnEscapeKey = true };
+
+        var result = await DialogService.Show<BudgetAddEdit>("Edit Budget", parameters, closeOnEscapeKey).Result;
+        if (result.Data != null && result.Data.GetType() == typeof(BudgetModel))
+        {
+            var editBudget = (BudgetModel)result.Data;
+            budgets.ForEach(detail =>
+            {
+                if (detail.Id == editBudget.Id)
+                {
+                    detail.BudgetAmount = editBudget.BudgetAmount;
+                    detail.BudgetName = editBudget.BudgetName;
+                }
+            });
+            await ProtectedLocalStore.SetAsync(localStorageID, budgets);
+        }
+    }
+
+    async Task DeleteBudget(BudgetModel budget)
+    {
+        DialogOptions closeOnEscapeKey = new DialogOptions() { CloseOnEscapeKey = true };
+        var result = await DialogService.Show<DialogConfirmCancel>("Delete Budget", closeOnEscapeKey).Result;
+        if (!result.Cancelled)
+        {
+            budgets.Remove(budget);
+            await ProtectedLocalStore.SetAsync(localStorageID, budgets);
+        }
+    }
+
+    async Task AddBudgetItem(BudgetModel budgetModel)
+    {
+        DialogOptions closeOnEscapeKey = new DialogOptions() { CloseOnEscapeKey = true };
+
+        var result = await DialogService.Show<BudgetItemAddEdit>("Add Budget Item", closeOnEscapeKey).Result;
+        if (result.Data != null && result.Data.GetType() == typeof(BudgetItemModel))
+        {
+            var newBudgetItem = (BudgetItemModel)result.Data;
+            newBudgetItem.Id = Guid.NewGuid();
+            newBudgetItem.BudgetId = budgetModel.Id;
+            var currentBudgetItems = budgets.FirstOrDefault(x => x.Id == budgetModel.Id).BudgetItems.ToList();
+            if (currentBudgetItems == null)
+            {
+                budgets.FirstOrDefault(x => x.Id == budgetModel.Id).BudgetItems = new List<BudgetItemModel>() { newBudgetItem };
+            }
+            else
+            {
+                currentBudgetItems.Add(newBudgetItem);
+                budgets.FirstOrDefault(x => x.Id == budgetModel.Id).BudgetItems = currentBudgetItems;
+            }
+            await ProtectedLocalStore.SetAsync(localStorageID, budgets);
+        }
+    }
+
+    async Task EditBudgetItem(BudgetItemModel budgetItem)
+    {
+        var parameters = new DialogParameters();
+        parameters.Add("BudgetItem", budgetItem);
+        DialogOptions closeOnEscapeKey = new DialogOptions() { CloseOnEscapeKey = true };
+
+        var result = await DialogService.Show<BudgetItemAddEdit>("Edit Budget Item", parameters, closeOnEscapeKey).Result;
+        if (result.Data != null && result.Data.GetType() == typeof(BudgetItemModel))
+        {
+            var editBudgetItem = (BudgetItemModel)result.Data;
+            var newBudgets = budgets;
+
+            if (newBudgets != null)
+            {
+                newBudgets.ForEach(budget =>
+                {
+                    if (budget.Id == budgetItem.BudgetId)
+                    {
+                        List<BudgetItemModel> newBudgetItems = budget.BudgetItems.ToList();
+                        newBudgetItems.ForEach(item =>
+                        {
+                            if (item.Id == editBudgetItem.Id)
+                            {
+                                item.BudgetItemName = editBudgetItem.BudgetItemName;
+                                item.BudgetItemAmount = editBudgetItem.BudgetItemAmount;
+                            }
+                        });
+                        budget.BudgetItems = newBudgetItems;
+                    }
+                });
+                budgets = newBudgets;
+                await ProtectedLocalStore.SetAsync(localStorageID, budgets);
+            }
+        }
+    }
+
+    async Task DeleteBudgetItem(BudgetItemModel budgetItem)
+    {
+        DialogOptions closeOnEscapeKey = new DialogOptions() { CloseOnEscapeKey = true };
+        var result = await DialogService.Show<DialogConfirmCancel>("Delete Budget Item", closeOnEscapeKey).Result;
+        if (!result.Cancelled)
+        {
+            var newBudgets = budgets;
+
+            if (newBudgets != null)
+            {
+                newBudgets.ForEach(budget =>
+                {
+                    if (budget.Id == budgetItem.BudgetId)
+                    {
+                        List<BudgetItemModel> newBudgetItems = budget.BudgetItems.ToList();
+                        newBudgetItems.Remove(budgetItem);
+                        budget.BudgetItems = newBudgetItems;
+                    }
+                });
+                budgets = newBudgets;
+                await ProtectedLocalStore.SetAsync(localStorageID, budgets);
+            }
+        }
+
+    }
+}

@@ -1,0 +1,103 @@
+﻿@using BlazorBudget.Models
+@using System.Globalization
+@inject IDialogService DialogService
+
+<MudCard Outlined="false" Elevation=2 Square=false>
+    <MudCardContent>
+
+        <MudGrid>
+            <MudItem Class="d-inline-flex py-2 px-1" xs="12" sm="5">
+                <MudText Typo="Typo.h5">@Budget.BudgetName</MudText>
+            </MudItem>
+            <MudItem Class="d-inline-flex flex-row-reverse py-2 px-1" xs="12" sm="7">
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" aria-label="delete" Size="Size.Small" OnClick="@(() => OnDeleteClick.InvokeAsync(@Budget))"></MudIconButton>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" aria-label="edit" Size="Size.Small" OnClick="@(() => OnEditClick.InvokeAsync(@Budget))"></MudIconButton>
+                <MudText Typo="Typo.h5">@GetFormatedBudgetItemAmount()/@GetFormatedAmount()</MudText>
+            </MudItem>
+        </MudGrid>
+        <MudProgressLinear Color=@GetColor() Rounded="true" Size="Size.Medium" Value=@GetPercentage() Class="my-7">
+            <MudText Typo="Typo.subtitle1" Color="Color.Dark" Style="z-index: 1">
+                <b>@GetPercentage()%</b>
+            </MudText>
+        </MudProgressLinear>
+        @{
+            if (Budget != null && Budget.BudgetItems != null)
+            {
+                <BudgetDetailList BudgetItems=@Budget.BudgetItems
+                    OnEditDetailClick=@EditBudgetItem
+                    OnDeleteDetailClick=@DeleteBudgetItem></BudgetDetailList>
+            }
+        }
+    </MudCardContent>
+
+    <MudCardActions Justiify="Justify.End">
+        <MudGrid>
+            <MudItem Class="d-inline-flex flex-row-reverse pa-4" xs="12" md="12">
+                <MudButton Variant="Variant.Filled" EndIcon="@Icons.Filled.Add" Color="Color.Secondary" OnClick="@(() => OnAddBudgetItemClick.InvokeAsync(@Budget))">Add New Budget Item</MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudCardActions>
+</MudCard>
+
+@code {
+    [Parameter]
+    public BudgetModel Budget { get; set; }
+    [Parameter] 
+    public EventCallback<BudgetModel> OnDeleteClick { get; set; }
+    [Parameter] 
+    public EventCallback<BudgetModel> OnEditClick { get; set; }
+
+    [Parameter] 
+    public EventCallback<BudgetItemModel> OnEditBudgetItemClick { get; set; }
+
+    [Parameter] 
+    public EventCallback<BudgetItemModel> OnDeleteBudgetItemClick { get; set; }
+
+    [Parameter] 
+    public EventCallback<BudgetModel> OnAddBudgetItemClick { get; set; }
+
+    public int GetPercentage()
+    {
+        if (Budget.BudgetItems != null)
+        {
+            return Convert.ToInt32(Math.Round((Budget.BudgetItems.Sum(x => x.BudgetItemAmount) / Budget.BudgetAmount) * 100, 0));
+        }
+        return 0;
+    }
+
+    public string GetFormatedAmount() => Budget.BudgetAmount.ToString("C", CultureInfo.CurrentCulture);
+
+    public string GetFormatedBudgetItemAmount()
+    {
+        int defaultValue = 0;
+        if (Budget.BudgetItems != null)
+        {
+            return Budget.BudgetItems.Sum(x => x.BudgetItemAmount).ToString("C", CultureInfo.CurrentCulture);
+        }
+        return defaultValue.ToString("C", CultureInfo.CurrentCulture);
+    }
+
+    public Color GetColor()
+    {
+        var percentage = GetPercentage();
+        if (percentage < 50)
+        {
+            return Color.Success;
+        }
+        if (percentage < 75)
+        {
+            return Color.Warning;
+        }
+        return Color.Error;
+    }
+
+    void DeleteBudgetItem(BudgetItemModel budgetItem)
+    {
+        OnDeleteBudgetItemClick.InvokeAsync(budgetItem);
+    }
+
+    void EditBudgetItem(BudgetItemModel budgetItem)
+    {
+        OnEditBudgetItemClick.InvokeAsync(budgetItem);
+    }
+}

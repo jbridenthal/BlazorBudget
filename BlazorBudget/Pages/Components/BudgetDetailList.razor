@@ -1,0 +1,40 @@
+﻿@using BlazorBudget.Models
+<MudExpansionPanel HideIcon="true" DisableBorders="false">
+    <TitleContent>
+        <div class="d-flex flex-row">
+            <MudText Class="mt-1">Show Detailed List</MudText>
+            <MudBadge Content="@GetTotalItems()" Color="Color.Primary" Overlap="true" Class="d-flex ml-auto">
+                <MudIcon Icon="@Icons.Material.Filled.List" Color="Color.Default" />
+            </MudBadge>
+        </div>
+    </TitleContent>
+    <ChildContent>
+        @{
+        if (BudgetItems != null && BudgetItems.Any()) {
+            foreach (var item in BudgetItems) {
+                    <MudDivider FlexItem="true"/>
+                    <BudgetDetailListItem BudgetItem=@item 
+                    OnEditDetailClick=@(() => OnEditDetailClick.InvokeAsync(@item))
+                    OnDeleteDetailClick=@(() => OnDeleteDetailClick.InvokeAsync(@item))></BudgetDetailListItem>
+                }
+            }
+        }
+    </ChildContent>
+</MudExpansionPanel>
+
+@code {
+    [Parameter] 
+    public IEnumerable<BudgetItemModel> BudgetItems { get; set; }
+
+    [Parameter] 
+    public EventCallback<BudgetItemModel> OnEditDetailClick { get; set; }
+    
+    [Parameter] 
+    public EventCallback<BudgetItemModel> OnDeleteDetailClick { get; set; }
+
+    public int GetTotalItems()
+    {
+        return BudgetItems != null && BudgetItems.Any() ? BudgetItems.Count() : 0;
+
+    }
+}

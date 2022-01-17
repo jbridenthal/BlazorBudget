@@ -1,0 +1,27 @@
+﻿@using BlazorBudget.Models
+@using System.Globalization
+
+<MudGrid>
+    @*<MudItem Class="d-inline-flex flex-row pa-3" xs="12" sm="10">*@
+    <MudItem Class="d-inline-flex flex-row"  xs="5">
+        <MudText Align="Align.Left">@BudgetItem.BudgetItemName</MudText>
+    </MudItem>
+    <MudItem Class="d-inline-flex flex-row">
+        <MudText Align="Align.Right">@BudgetItem.BudgetItemAmount.ToString("C",CultureInfo.CurrentCulture)</MudText>
+    </MudItem>
+    <MudItem Class="d-inline-flex flex-row">
+        <MudIconButton Class="d-inline-flex flex-row" Icon="@Icons.Material.Filled.Delete" Size="Size.Small" aria-label="delete" OnClick=@(() => OnDeleteDetailClick.InvokeAsync())></MudIconButton>
+        <MudIconButton Class="d-inline-flex flex-row" Icon="@Icons.Material.Filled.Edit" Size="Size.Small" aria-label="edit" OnClick=@(() => OnEditDetailClick.InvokeAsync())></MudIconButton>
+    </MudItem>
+</MudGrid>
+@code {
+
+    [Parameter]
+    public BudgetItemModel BudgetItem { get; set; }
+    
+    [Parameter] 
+    public EventCallback<BudgetItemModel> OnEditDetailClick { get; set; }
+    
+    [Parameter] 
+    public EventCallback<BudgetItemModel> OnDeleteDetailClick { get; set; }
+}

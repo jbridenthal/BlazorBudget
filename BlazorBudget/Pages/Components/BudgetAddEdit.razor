@@ -1,0 +1,66 @@
+﻿@using BlazorBudget.Models
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="budget.BudgetName" T="string" Label="Budget Name" Required="true" Validation="@(new Func<string, string>(BudgetNameValidate))"></MudTextField>
+        <MudTextField @bind-Value="budget.BudgetAmount" T="double" Label="Budget Amount" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney"></MudTextField>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Disabled="@(!success)" OnClick="Submit">Ok</MudButton>
+    </DialogActions>
+
+</MudDialog>
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public BudgetModel budget { get; set; }
+
+    bool success;
+
+    public BudgetAddEdit()
+    {
+        if (budget == null)
+        {
+            budget = new BudgetModel();
+            success = false;
+        }
+        else
+        {
+            success = true;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if (budget == null)
+            {
+                success = false;
+            }
+            else
+            {
+                success = true;
+            }
+        }
+    }
+
+    void Submit()
+    {
+        MudDialog.Close(budget);
+    }
+
+    void Cancel() => MudDialog.Cancel();
+
+    private string BudgetNameValidate(string budgetName)
+    {
+        success = !string.IsNullOrEmpty(budgetName);
+        if (!success)
+        {
+            return "Budget must have a name";
+        }
+        return null;
+    }
+}
+
